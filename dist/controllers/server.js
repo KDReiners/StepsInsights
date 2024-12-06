@@ -2,7 +2,11 @@ import express from "express";
 import cors from "cors";
 import os from "os";
 import path from "path";
-import sql, { pool } from "mssql";
+import sql from "mssql";
+import { fileURLToPath } from "url";
+// Simuliert __dirname für ESModules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3001;
 // CORS aktivieren
@@ -26,13 +30,14 @@ app.get("/api/username", (req, res) => {
 });
 // API-Route für SQL-Daten
 app.get("/api/data", async (req, res) => {
+    let pool;
     try {
         // Verbindung herstellen
-        const pool = await sql.connect(dbConfig);
+        pool = await sql.connect(dbConfig);
         // Abfrage ausführen
         const result = await pool
             .request()
-            .query("SELECT TOP 10 * FROM sao.customer_m where dt_deleted is null");
+            .query("SELECT TOP 10 * FROM sao.customer_m WHERE dt_deleted IS NULL");
         // Ergebnisse zurückgeben
         res.json(result.recordset);
     }
@@ -41,9 +46,15 @@ app.get("/api/data", async (req, res) => {
         res.status(500).send("Serverfehler bei der Datenbankabfrage");
     }
     finally {
-        // Verbindung schließen, falls geöffnet
-        if (pool) {
-            await pool.close();
+        try {
+            // Verbindung schließen, falls initialisiert
+            if (pool) {
+                await pool.close();
+                console.log("Datenbankverbindung geschlossen.");
+            }
+        }
+        catch (closeErr) {
+            console.error("Fehler beim Schließen der Verbindung:", closeErr);
         }
     }
 });
