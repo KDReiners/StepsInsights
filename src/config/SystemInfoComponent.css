@@ -1,0 +1,43 @@
+.system-info-container {
+  border: 2px solid #007bff; /* Blaue Umrandung */
+  border-radius: 8px; /* Abgerundete Ecken */
+  padding: 16px;
+  width: 80%; /* Breite */
+  margin: 20px auto; /* Zentriert */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Leichter Schatten */
+  font-family: Arial, sans-serif;
+}
+
+.system-info-header {
+  background-color: #007bff; /* Blaue Kopfzeile */
+  color: white;
+  padding: 8px;
+  border-radius: 6px 6px 0 0; /* Runde obere Ecken */
+  text-align: center;
+}
+
+.system-info-header h1 {
+  font-size: 1rem; /* Kleinere Schriftgröße */
+  font-weight: bold; /* Fett (optional) */
+  margin: 0; /* Entfernt zusätzlichen Abstand */
+  padding: 5px; /* Fügt etwas Abstand innerhalb des Containers hinzu */
+  color: #fff; /* Weißer Text */
+  font-family: Arial, sans-serif; /* Standard-Schriftart */
+}
+
+.system-info-row {
+  display: flex; /* Flexbox aktivieren */
+  justify-content: space-between; /* Gleichmäßige Verteilung */
+  align-items: center; /* Vertikal zentriert */
+  padding: 10px 0;
+  flex-wrap: wrap; /* Elemente umbrechen, wenn kein Platz */
+}
+
+.system-info-item {
+  flex: 1; /* Gleiche Breite für alle Elemente */
+  text-align: center; /* Zentrierter Text */
+  margin: 5px;
+  padding: 5px;
+  border: 1px solid #ddd; /* Optionale Umrandung der Felder */
+  border-radius: 4px;
+}
