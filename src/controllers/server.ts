@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import sql from "mssql";
 import { fileURLToPath } from "url";
+import { Console } from "console";
 
 // Simuliert __dirname für ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -21,13 +22,20 @@ app.use(
 
 // SQL Server Konfiguration
 const dbConfig: sql.config = {
-  server: "eude82taaSQL003", // SQL Server Hostname
+  server: "eude82taaSQL003.ass.local", // SQL Server Hostname
   database: "wac", // Name der Datenbank
+  authentication: {
+    type: "ntlm", // Windows-Authentifizierung
+    options: {
+      userName: "Klaus.Reiners", // Dein Windows-Benutzername
+      password: "ple@seword17", // Dein Passwort
+      domain: "ass", // Domäne des Servers
+    },
+  },
   options: {
     encrypt: true, // Wenn SSL erforderlich ist
     trustServerCertificate: true, // Für lokale Server
   },
-  driver: "msnodesqlv8", // Treiber für Windows-Authentifizierung
 };
 
 // API-Route für den Benutzernamen
@@ -42,8 +50,10 @@ app.get("/api/data", async (req: Request, res: Response) => {
 
   try {
     // Verbindung herstellen
-    pool = await sql.connect(dbConfig);
+    console.error("versuche Verbindung");
 
+    pool = await sql.connect(dbConfig);
+    console.error("pool ist da da:");
     // Abfrage ausführen
     const result = await pool
       .request()

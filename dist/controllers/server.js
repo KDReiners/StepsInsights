@@ -15,13 +15,20 @@ app.use(cors({
 }));
 // SQL Server Konfiguration
 const dbConfig = {
-    server: "eude82taaSQL003", // SQL Server Hostname
+    server: "eude82taaSQL003.ass.local", // SQL Server Hostname
     database: "wac", // Name der Datenbank
+    authentication: {
+        type: "ntlm", // Windows-Authentifizierung
+        options: {
+            userName: "Klaus.Reiners", // Dein Windows-Benutzername
+            password: "ple@seword17", // Dein Passwort
+            domain: "ass", // Domäne des Servers
+        },
+    },
     options: {
         encrypt: true, // Wenn SSL erforderlich ist
         trustServerCertificate: true, // Für lokale Server
     },
-    driver: "msnodesqlv8", // Treiber für Windows-Authentifizierung
 };
 // API-Route für den Benutzernamen
 app.get("/api/username", (req, res) => {
@@ -33,7 +40,9 @@ app.get("/api/data", async (req, res) => {
     let pool;
     try {
         // Verbindung herstellen
+        console.error("versuche Verbindung");
         pool = await sql.connect(dbConfig);
+        console.error("pool ist da da:");
         // Abfrage ausführen
         const result = await pool
             .request()
