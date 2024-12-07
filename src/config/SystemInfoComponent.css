@@ -41,3 +41,57 @@
   border: 1px solid #ddd; /* Optionale Umrandung der Felder */
   border-radius: 4px;
 }
+/* Tabellencontainer mit begrenzter Höhe und Scrollen */
+.table-container {
+  max-height: 700px; /* Begrenzung der Höhe */
+  overflow-y: auto; /* Vertikales Scrollen aktivieren */
+  border: 1px solid #ccc; /* Optionale Begrenzung */
+}
+
+/* Sticky Header */
+.data-table thead th {
+  position: sticky; /* Sticky-Position aktivieren */
+  top: 0; /* An der Oberkante des Containers fixieren */
+  background-color: #f5f5f5; /* Hintergrundfarbe, damit der Header sichtbar bleibt */
+  z-index: 1; /* Sicherstellen, dass der Header über den Zellen bleibt */
+  border-bottom: 2px solid #ccc; /* Trennlinie für bessere Lesbarkeit */
+}
+/* Allgemeines Styling für die Tabelle */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Tabellenkopf */
+.data-table thead {
+  background-color: #f5f5f5; /* Hellgrauer Hintergrund */
+  text-align: left;
+}
+
+.data-table th {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+/* Tabelleninhalt */
+.data-table td {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.data-table tr:nth-child(even) {
+  background-color: #f9f9f9; /* Hellgraue Streifen für ungerade Zeilen */
+}
+
+.data-table tr:hover {
+  background-color: #e6f7ff; /* Hellblau beim Hover */
+}
+
+/* Tabellen-Container */
+.table-container {
+  margin-top: 20px;
+  overflow-x: auto; /* Horizontaler Scrollbalken für kleine Bildschirme */
+}

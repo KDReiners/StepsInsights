@@ -55,9 +55,9 @@ app.get("/api/data", async (req: Request, res: Response) => {
     pool = await sql.connect(dbConfig);
     console.error("pool ist da da:");
     // Abfrage ausführen
-    const result = await pool
-      .request()
-      .query("SELECT TOP 10 * FROM sao.customer_m WHERE dt_deleted IS NULL");
+    const result = await pool.request().query(`
+       select Server, Name, Oberfläche, Bemerkung, format(zeitpunkt, 'dd.MM.yy HH:mm') as Uhrzeit from [sao].[STEPSInsights_PerformanceProblems]
+      order by Zeitpunkt desc`);
 
     // Ergebnisse zurückgeben
     res.json(result.recordset);
