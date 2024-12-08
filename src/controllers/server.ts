@@ -5,6 +5,7 @@ import path from "path";
 import sql from "mssql";
 import { fileURLToPath } from "url";
 import { Console } from "console";
+import dns from "dns";
 
 // Simuliert __dirname für ESModules
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,45 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
+
+// Helper: Reverse-Lookup mit Fallback auf lokalen Hostnamen
+async function getClientHostname(req: Request): Promise<string> {
+  const clientIp =
+    req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
+  console.log("Ermittelte Client-IP:", clientIp);
+
+  try {
+    // Prüfen, ob es sich um localhost handelt (IPv6 `::1` oder IPv4 `127.0.0.1`)
+    if (clientIp === "::1" || clientIp === "127.0.0.1") {
+      const localHostname = os.hostname();
+      console.log("Lokaler Hostname für  aus function localhost:", localHostname);
+      return localHostname;
+    }
+
+    // Reverse-Lookup für andere IP-Adressen
+    const hostnames = await new Promise<string[]>((resolve, reject) => {
+      dns.reverse(clientIp as string, (err, hostnames) => {
+        if (err) {
+          reject(err); // Fehler weitergeben
+        } else {
+          resolve(hostnames); // Erfolgreiches Ergebnis zurückgeben
+        }
+      });
+    });
+
+    const resolvedHostname =
+      hostnames.length > 0 ? hostnames[0] : os.hostname();
+    console.log("Ermittelter Hostname (DNS):", resolvedHostname);
+    return resolvedHostname;
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error("Fehler beim DNS-Reverse:", err.message);
+    } else {
+      console.error("Unbekannter Fehler beim DNS-Reverse:", err);
+    }
+    return os.hostname();
+  }
+}
 
 // CORS aktivieren
 app.use(
@@ -37,6 +77,34 @@ const dbConfig: sql.config = {
     trustServerCertificate: true, // Für lokale Server
   },
 };
+
+// Endpoint, um den Hostnamen des Clients zurückzugeben
+app.get("/api/hostname", async (req: Request, res: Response) => {
+  // Client-IP-Adresse ermitteln
+  const clientIp =
+    req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
+
+  try {
+    // Reverse-Lookup durchführen
+    const hostname = await getClientHostname(req); //await reverseLookup(clientIp as string);
+
+    const clientHostname = hostname.length > 0 ? hostname : "unknown";
+    console.log("Lokaler Hostname aus api für localhost:", clientHostname);
+    // Hostnamen zurückgeben
+    res.json({ hostname: clientHostname });
+  } catch (err) {
+    if (err instanceof Error) {
+      console.error("Fehler beim Auflösen des Hostnamens:", err.message);
+      res.json({ hostname: "unknown", error: err.message });
+    } else {
+      console.error("Unbekannter Fehler:", err);
+      res.json({
+        hostname: "unknown",
+        error: "Ein unbekannter Fehler ist aufgetreten",
+      });
+    }
+  }
+});
 
 // API-Route für den Benutzernamen
 app.get("/api/username", (req: Request, res: Response) => {

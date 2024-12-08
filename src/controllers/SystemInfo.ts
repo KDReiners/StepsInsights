@@ -1,46 +1,36 @@
+import { hostname } from "os";
 import config from "../config/config";
 
 export class SystemInfo {
   static async getContext() {
     try {
-      const response = await fetch(`${config.apiBaseUrl}/api/username`);
-      if (!response.ok) {
-        throw new Error(`API-Fehler: ${response.status}`);
+      const [usernameResponse, hostnameResponse] = await Promise.all([
+        fetch(`${config.apiBaseUrl}/api/username`),
+        fetch(`${config.apiBaseUrl}/api/hostname`),
+      ]);
+
+      if (!usernameResponse.ok || !hostnameResponse.ok) {
+        throw new Error("API-Aufruf fehlgeschlagen");
       }
-      const data = await response.json();
+
+      const usernameData = await usernameResponse.json();
+      const hostnameData = await hostnameResponse.json();
 
       const now = new Date();
-      const date = now.toLocaleDateString();
-      const timeFrom = new Date(
-        now.getTime() - 10 * 60 * 1000
-      ).toLocaleTimeString();
-      const timeTo = new Date(
-        now.getTime() + 10 * 60 * 1000
-      ).toLocaleTimeString();
 
       return {
-        username: data.username || "Unbekannt",
-        date,
-        timeFrom,
-        timeTo,
+        username: usernameData.username || "Unbekannt",
+        hostname: hostnameData.hostname || "Unbekannt",
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
       };
-    } catch (error) {
-      console.error("Fehler in SystemInfo.getContext:", error);
-
-      const now = new Date();
-      const date = now.toLocaleDateString();
-      const timeFrom = new Date(
-        now.getTime() - 10 * 60 * 1000
-      ).toLocaleTimeString();
-      const timeTo = new Date(
-        now.getTime() + 10 * 60 * 1000
-      ).toLocaleTimeString();
-
+    } catch (err) {
+      console.error("Fehler in SystemInfo.getContext:", err);
       return {
         username: "Unbekannt",
-        date,
-        timeFrom,
-        timeTo,
+        hostname: "Unbekannt",
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
       };
     }
   }

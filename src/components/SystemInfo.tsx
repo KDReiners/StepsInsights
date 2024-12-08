@@ -5,9 +5,9 @@ import "../config/SystemInfoComponent.css";
 const SystemInfoComponent: React.FC = () => {
   const [info, setInfo] = useState<{
     username: string;
+    hostname: string; // Hostname hinzugefügt
     date: string;
-    timeFrom: string;
-    timeTo: string;
+    time: string;
   } | null>(null);
 
   const [tableData, setTableData] = useState<Record<string, any>[]>([]); // Typ für die Tabelle angepasst
@@ -15,7 +15,7 @@ const SystemInfoComponent: React.FC = () => {
   // Daten für SystemInfo abrufen
   useEffect(() => {
     SystemInfo.getContext().then((data) => {
-      setInfo(data);
+    setInfo(data); // Daten in den Zustand setzen
     });
   }, []);
 
@@ -55,6 +55,9 @@ const SystemInfoComponent: React.FC = () => {
         </button>
       </div>
       <div className="system-info-row">
+      <div className="system-info-item">
+          <strong>Server:</strong> {info.hostname}
+        </div>
         <div className="system-info-item">
           <strong>Benutzername:</strong> {info.username}
         </div>
@@ -62,10 +65,7 @@ const SystemInfoComponent: React.FC = () => {
           <strong>Datum:</strong> {info.date}
         </div>
         <div className="system-info-item">
-          <strong>Uhrzeit von:</strong> {info.timeFrom}
-        </div>
-        <div className="system-info-item">
-          <strong>Uhrzeit bis:</strong> {info.timeTo}
+          <strong>Uhrzeit:</strong> {info.time}
         </div>
       </div>
       <div className="table-container">
