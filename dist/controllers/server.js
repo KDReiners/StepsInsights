@@ -5,112 +5,110 @@ import path from "path";
 import sql from "mssql";
 import { fileURLToPath } from "url";
 import dns from "dns";
-// Simuliert __dirname für ESModules
+// **1. Allgemeine Konfiguration**
+/**
+ * Simuliert `__dirname` für ESModules
+ */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+/**
+ * Initialisiert die Express-App und den Port
+ */
 const app = express();
 const PORT = 3001;
-// Helper: Reverse-Lookup mit Fallback auf lokalen Hostnamen
+/**
+ * Middleware-Konfiguration
+ */
+app.use(express.json()); // Middleware für JSON-Daten
+app.use(express.static(path.join(__dirname, "dist"))); // Statische Dateien
+app.use(cors({
+    origin: "http://localhost:5173", // Erlaubt Anfragen vom Frontend
+}));
+// **2. Helper-Funktion: Reverse-Lookup**
+/**
+ * Führt einen Reverse-Lookup für die IP-Adresse des Clients durch.
+ * Wenn kein Hostname gefunden wird, wird ein Fallback auf den lokalen Hostnamen verwendet.
+ */
 async function getClientHostname(req) {
     const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
     console.log("Ermittelte Client-IP:", clientIp);
     try {
-        // Prüfen, ob es sich um localhost handelt (IPv6 `::1` oder IPv4 `127.0.0.1`)
         if (clientIp === "::1" || clientIp === "127.0.0.1") {
             const localHostname = os.hostname();
-            console.log("Lokaler Hostname für  aus function localhost:", localHostname);
+            console.log("Lokaler Hostname:", localHostname);
             return localHostname;
         }
-        // Reverse-Lookup für andere IP-Adressen
         const hostnames = await new Promise((resolve, reject) => {
             dns.reverse(clientIp, (err, hostnames) => {
-                if (err) {
-                    reject(err); // Fehler weitergeben
-                }
-                else {
-                    resolve(hostnames); // Erfolgreiches Ergebnis zurückgeben
-                }
+                if (err)
+                    reject(err);
+                else
+                    resolve(hostnames);
             });
         });
-        const resolvedHostname = hostnames.length > 0 ? hostnames[0] : os.hostname();
-        console.log("Ermittelter Hostname (DNS):", resolvedHostname);
-        return resolvedHostname;
+        return hostnames.length > 0 ? hostnames[0] : os.hostname();
     }
     catch (err) {
-        if (err instanceof Error) {
-            console.error("Fehler beim DNS-Reverse:", err.message);
-        }
-        else {
-            console.error("Unbekannter Fehler beim DNS-Reverse:", err);
-        }
+        console.error("Fehler beim DNS-Reverse:", err instanceof Error ? err.message : err);
         return os.hostname();
     }
 }
-// CORS aktivieren
-app.use(cors({
-    origin: "http://localhost:5173", // Erlaubt Anfragen von deinem Frontend
-}));
-// SQL Server Konfiguration
+// **3. Datenbankkonfiguration**
+/**
+ * Konfiguration für den SQL Server
+ */
 const dbConfig = {
-    server: "eude82taaSQL003.ass.local", // SQL Server Hostname
-    database: "wac", // Name der Datenbank
+    server: "eude82taaSQL003.ass.local",
+    database: "wac",
     authentication: {
-        type: "ntlm", // Windows-Authentifizierung
+        type: "ntlm",
         options: {
-            userName: "Klaus.Reiners", // Dein Windows-Benutzername
-            password: "ple@seword17", // Dein Passwort
-            domain: "ass", // Domäne des Servers
+            userName: "Klaus.Reiners",
+            password: "ple@seword17",
+            domain: "ass",
         },
     },
     options: {
-        encrypt: true, // Wenn SSL erforderlich ist
-        trustServerCertificate: true, // Für lokale Server
+        encrypt: true,
+        trustServerCertificate: true,
     },
 };
-// Endpoint, um den Hostnamen des Clients zurückzugeben
+// **4. API-Routen**
+/**
+ * Route: Gibt den Hostnamen des Clients zurück.
+ */
 app.get("/api/hostname", async (req, res) => {
-    // Client-IP-Adresse ermitteln
-    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
     try {
-        // Reverse-Lookup durchführen
-        const hostname = await getClientHostname(req); //await reverseLookup(clientIp as string);
-        const clientHostname = hostname.length > 0 ? hostname : "unknown";
-        console.log("Lokaler Hostname aus api für localhost:", clientHostname);
-        // Hostnamen zurückgeben
-        res.json({ hostname: clientHostname });
+        const hostname = await getClientHostname(req);
+        res.json({ hostname });
     }
     catch (err) {
-        if (err instanceof Error) {
-            console.error("Fehler beim Auflösen des Hostnamens:", err.message);
-            res.json({ hostname: "unknown", error: err.message });
-        }
-        else {
-            console.error("Unbekannter Fehler:", err);
-            res.json({
-                hostname: "unknown",
-                error: "Ein unbekannter Fehler ist aufgetreten",
-            });
-        }
+        res.json({
+            hostname: "unknown",
+            error: err instanceof Error ? err.message : "Unbekannter Fehler",
+        });
     }
 });
-// API-Route für den Benutzernamen
+/**
+ * Route: Gibt den Benutzernamen des Systems zurück.
+ */
 app.get("/api/username", (req, res) => {
     const username = os.userInfo().username;
     res.json({ username });
 });
-// API-Route für SQL-Daten
+/**
+ * Route: Holt Daten aus der Tabelle `STEPSInsights_PerformanceProblems`.
+ */
 app.get("/api/data", async (req, res) => {
     let pool;
     try {
-        // Verbindung herstellen
-        console.error("versuche Verbindung");
         pool = await sql.connect(dbConfig);
-        console.error("pool ist da da:");
-        // Abfrage ausführen
         const result = await pool.request().query(`
-       select Server, Name, Oberfläche, Bemerkung, format(zeitpunkt, 'dd.MM.yy HH:mm') as Uhrzeit from [sao].[STEPSInsights_PerformanceProblems]
-      order by Zeitpunkt desc`);
-        // Ergebnisse zurückgeben
+      SELECT Server, Name, Oberfläche, Bemerkung, 
+             FORMAT(Zeitpunkt, 'dd.MM.yy HH:mm') AS Uhrzeit
+      FROM [sao].[STEPSInsights_PerformanceProblems]
+      ORDER BY Zeitpunkt DESC
+    `);
         res.json(result.recordset);
     }
     catch (err) {
@@ -118,25 +116,47 @@ app.get("/api/data", async (req, res) => {
         res.status(500).send("Serverfehler bei der Datenbankabfrage");
     }
     finally {
-        try {
-            // Verbindung schließen, falls initialisiert
-            if (pool) {
-                await pool.close();
-                console.log("Datenbankverbindung geschlossen.");
-            }
-        }
-        catch (closeErr) {
-            console.error("Fehler beim Schließen der Verbindung:", closeErr);
-        }
+        if (pool)
+            await pool.close().catch(console.error);
     }
 });
-// Statische Dateien bereitstellen
-app.use(express.static(path.join(__dirname, "dist")));
-// Fallback für andere Routen
+/**
+ * Route: Speichert Log-Daten in der Datenbank.
+ */
+export const insertPerformanceLog = async (req, res) => {
+    const { name, server, oberfläche, bemerkung, kategorie, zeitpunkt } = req.body;
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool
+            .request()
+            .input("Name", sql.NVarChar(255), name)
+            .input("Server", sql.NVarChar(255), server)
+            .input("Oberfläche", sql.NVarChar(255), oberfläche || null)
+            .input("Bemerkung", sql.NVarChar(sql.MAX), bemerkung || null)
+            .input("Kategorie", sql.VarChar(100), kategorie || null)
+            .input("Zeitpunkt", sql.DateTime, zeitpunkt || null)
+            .execute("sao.STEPSInsights_InsertPerformanceLog");
+        res.status(200).send("Eintrag erfolgreich gespeichert");
+    }
+    catch (err) {
+        console.error("Fehler beim Einfügen in die Datenbank:", err);
+        res.status(500).send("Fehler beim Einfügen in die Datenbank");
+    }
+};
+/**
+ * Route: Registriere die Logging-Route mit Middleware zur Überprüfung.
+ */
+app.post("/api/insert-log", (req, res, next) => {
+    console.log("Route /api/insert-log wurde aufgerufen");
+    next();
+}, insertPerformanceLog);
+/**
+ * Fallback-Route: Liefert die index.html für unbekannte Routen.
+ */
 app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
-// Server starten
+// **5. Server starten**
 app.listen(PORT, () => {
     console.log(`Server läuft auf http://localhost:${PORT}`);
 });
